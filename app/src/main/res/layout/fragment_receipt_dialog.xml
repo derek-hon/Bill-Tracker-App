@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    tools:context=".ReceiptDialogFragment"
+    android:orientation="vertical"
+    android:background="#FFD14C"
+    android:id="@+id/dialogLayout">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="500dp">
+
+        <ImageView
+            android:id="@+id/receiptView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:contentDescription="@string/receiptViewDescription"
+            android:padding="10dp"
+            android:layout_alignParentTop="true"/>
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_alignParentBottom="true"
+            android:layout_alignParentStart="true">
+            <ImageView
+                android:id="@+id/rotateImageLeft"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@drawable/ic_rotate_left"
+                android:contentDescription="@string/rotateLeftDescription" />
+
+            <ImageView
+                android:id="@+id/rotateImageRight"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@drawable/ic_rotate_right"
+                android:contentDescription="@string/rotateRightDescription"/>
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/exit"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/exitReceiptDialog"
+            android:textSize="20sp"
+            android:layout_alignParentBottom="true"
+            android:layout_alignParentEnd="true"/>
+
+    </RelativeLayout>
+
+</LinearLayout>

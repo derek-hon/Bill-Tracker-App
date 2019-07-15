@@ -1,0 +1,28 @@
+<resources>
+    <string name="appName">Bill Tracker</string>
+    <string name="resultView">Result</string>
+    <string name="imagePreviewView">Image Preview</string>
+    <string name="itemAddImage">Add Image</string>
+    <string name="itemSettings">Settings</string>
+    <string name="dateDescription">All date values are in number format.</string>
+    <string name="dateYear">Year: </string>
+    <string name="dateMonth">Month:</string>
+    <string name="dateDay">Day:</string>
+    <string name="amountLabel">Total: </string>
+    <string name="previewImage">Preview not available</string>
+    <string name="description">Please check to make sure these values are correct. If they are not please enter the values in the fields below.</string>
+    <string name="scanner">Scanner</string>
+    <string name="receipts">Receipts</string>
+    <string name="expenses">Expenses</string>
+    <string name="save">Save</string>
+    <string name="scannerInstructions">Tap on the button to scan your receipt!</string>
+    <string name="receiptViewDescription">Image of Receipt</string>
+    <string name="rotateLeftDescription">Arrow Rotating Left</string>
+    <string name="rotateRightDescription">Arrow rotating right</string>
+    <string name="rotateLeftText">Click to Rotate Image Counterclockwise</string>
+    <string name="rotateRightText">Click to rotate image clockwise</string>
+
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="exitReceiptDialog">Exit</string>
+</resources>
