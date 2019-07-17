@@ -30,12 +30,14 @@ import android.os.Bundle;
 import android.util.Log;
 import android.util.TypedValue;
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.RadioButton;
+import android.widget.RelativeLayout;
 import android.widget.ScrollView;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -69,7 +71,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     ImageView previewImageView;
     FloatingActionButton cameraFAB;
     ScrollView resultsView;
-    LinearLayout scannerLayout, receiptLayout, expenseLayout;
+    LinearLayout scannerLayout, receiptLayout, expenseDataLayout;
+    RelativeLayout expenseLayout;
     RadioButton scannerButton, receiptsButton, expensesButton;
     Button saveButton;
     Spinner expenseDropdown;
@@ -103,26 +106,40 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         ActionBar actionBar = getSupportActionBar();
         Objects.requireNonNull(actionBar).setSubtitle("Click the image button to insert an image");
 
-        ocrYearText = findViewById(R.id.receiptYear);
-        ocrMonthText = findViewById(R.id.receiptMonth);
-        ocrDayText = findViewById(R.id.receiptDay);
+        ocrYearText   = findViewById(R.id.receiptYear);
+        ocrMonthText  = findViewById(R.id.receiptMonth);
+        ocrDayText    = findViewById(R.id.receiptDay);
         ocrAmountText = findViewById(R.id.receiptAmount);
 
         previewImageView = findViewById(R.id.imagePreview);
-        resultsView = findViewById(R.id.resultView);
+        resultsView      = findViewById(R.id.resultView);
 
-        scannerLayout = findViewById(R.id.scannerLayout);
-        receiptLayout = findViewById(R.id.receiptLayout);
-        expenseLayout = findViewById(R.id.expenseLayout);
+        scannerLayout     = findViewById(R.id.scannerLayout);
+        receiptLayout     = findViewById(R.id.receiptLayout);
+        expenseLayout     = findViewById(R.id.expenseLayout);
+        expenseDataLayout = findViewById(R.id.expenseData);
 
-        cameraFAB = findViewById(R.id.fab);
-        saveButton = findViewById(R.id.saveOCR);
-        scannerButton = findViewById(R.id.scanner);
+        cameraFAB      = findViewById(R.id.fab);
+        saveButton     = findViewById(R.id.saveOCR);
+        scannerButton  = findViewById(R.id.scanner);
         receiptsButton = findViewById(R.id.receipts);
         expensesButton = findViewById(R.id.expenses);
 
         expenseDropdown = findViewById(R.id.expenseDropdown);
         setExpenseDropdown();
+        expenseDropdown.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                if (position == 0)
+                    setExpenseData(0);
+                else
+                    setExpenseData(1);
+            }
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+
+            }
+        });
 
         cameraPermissions = new String[]{
                 Manifest.permission.CAMERA,
@@ -162,8 +179,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 break;
             case R.id.receipts:
                 setButtonBackground(R.id.receipts);
-//                scannerLayout.setVisibility(View.GONE);
-//                resultsView.setVisibility(View.GONE);
                 setReceiptData();
                 setLayoutVisibility(R.id.receiptLayout, false);
                 break;
@@ -487,13 +502,17 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                System.out.println("expense data");
+                expenseDataLayout.removeAllViews();
+
+                double total = 0.0;
+                double monthTotal = 0.0;
                 String[] args;
                 String selection,
-                       orderBy;
+                       orderBy,
+                       totalText = "";
 
                 int currentMonth = Calendar.getInstance().get(Calendar.MONTH) + 1,
-                    daysInMonth;
+                    daysInMonth, year = 0;
 
                 if (option == 0) {
                     args = new String[]{currentMonth + ""};
@@ -506,8 +525,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     orderBy = DataHelper.MONTH + " ASC";
                 }
 
-                System.out.println(selection);
-                System.out.println(Arrays.toString(args));
                 SQLiteDatabase db = DataHelper.getInstance(MainActivity.this).getReadableDatabase("somePassword123");
                 String[] column = new String[]{DataHelper.DAY, DataHelper.MONTH, DataHelper.AMOUNT, DataHelper.YEAR};
 
@@ -521,13 +538,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         orderBy);
 
                 if (cursor.getCount() > 0) {
-                    System.out.println("?");
-                    LinearLayout firstWeekLayout  = new LinearLayout(MainActivity.this),
-                                 secondWeekLayout = new LinearLayout(MainActivity.this),
-                                 thirdWeekLayout  = new LinearLayout(MainActivity.this),
-                                 fourthWeekLayout = new LinearLayout(MainActivity.this),
-                                 fifthWeekLayout  = new LinearLayout(MainActivity.this);
-
                     double[] weeks  = new double[5];
                     double[] months = new double [12];
 
@@ -535,33 +545,84 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
                     while (!cursor.isAfterLast()) {
                         int day       = Integer.parseInt(cursor.getString(0)),
-                            month     = Integer.parseInt(cursor.getString(1)),
-                            year      = Integer.parseInt(cursor.getString(3));
+                            month     = Integer.parseInt(cursor.getString(1));
                         double amount = Double.parseDouble(cursor.getString(2));
 
+                        year = Integer.parseInt(cursor.getString(3));
 
-                        if (option == 1 && month != currentMonth)
+                        if (option == 1 && month != currentMonth) {
                             months[month - 1] += amount;
+                            monthTotal += amount;
+                        }
                         else {
                             double[] weekAmount = separateIntoWeeks(day, amount);
                             weeks[(int)weekAmount[0]] += weekAmount[1];
+                            if (option == 1)
+                                monthTotal += amount;
+                            else
+                                total += amount;
                         } //end else
 
                         cursor.moveToNext();
                     } //end while
-                    System.out.println("arrays");
-                    System.out.println(Arrays.toString(weeks));
-                    System.out.println(Arrays.toString(months));
 
+                    if (Build.VERSION.SDK_INT >= 26) {
+                        YearMonth yearMonthObject = YearMonth.of(1999, 2);
+                        daysInMonth = yearMonthObject.lengthOfMonth();
+                    }
+                    else {
+                        Calendar mycal = new GregorianCalendar(year, currentMonth - 1, 1);
+                        daysInMonth = mycal.getActualMaximum(Calendar.DAY_OF_MONTH);
+                    }
+                    
+                    if (option == 0) {
+                        setExpenseLayout(5, weeks);
+                        totalText  = "$" + total + " spent with " +
+                                (daysInMonth - Calendar.getInstance().get(Calendar.DAY_OF_MONTH)) +
+                                " days left in the month";
+                    }
+                    else {
+                        setExpenseLayout(12, months);
+                        totalText = "$" + monthTotal + " spent with " + (12 - currentMonth) +
+                                " months and " +
+                                (daysInMonth - Calendar.getInstance().get(Calendar.DAY_OF_MONTH)) +
+                                " days left in the year";
+                    }
+
+                    TextView totalView = new TextView(MainActivity.this);
+                    totalView.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
+                    totalView.setPadding(0, 20, 0, 0);
+                    totalView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20);
+                    totalView.setText(totalText);
+                    expenseDataLayout.addView(totalView);
                 } //end if
-
 
                 if (cursor != null && !cursor.isClosed())
                     cursor.close();
                 db.close();
-            }
+            } //run
         });
-    }
+    } //setExpenseData
+
+    void setExpenseLayout(int limit, double[] amount) {
+        String timeInterval;
+        for (int i = 0 ; i < limit ; i ++) {
+            TextView intervalView = new TextView(MainActivity.this);
+            intervalView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 25);
+            intervalView.setPadding(30, 15, 0, 0);
+
+            if (amount[i] == 0)
+                intervalView.setVisibility(View.INVISIBLE);
+
+            if (limit == 5)
+                timeInterval = "Week " + (i + 1) + ": $" + amount[i];
+            else
+                timeInterval = getMonthText(i + 1) + ": $" + amount[i];
+            intervalView.setText(timeInterval);
+
+            expenseDataLayout.addView(intervalView);
+        } //end for
+    } //setExpenseLayout
 
     double[] separateIntoWeeks(int day, double amount) {
         if (day <= 7)
