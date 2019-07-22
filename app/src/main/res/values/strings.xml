@@ -21,8 +21,7 @@
     <string name="rotateRightDescription">Arrow rotating right</string>
     <string name="rotateLeftText">Click to Rotate Image Counterclockwise</string>
     <string name="rotateRightText">Click to rotate image clockwise</string>
-
-    <!-- TODO: Remove or change this placeholder text -->
-    <string name="hello_blank_fragment">Hello blank fragment</string>
     <string name="exitReceiptDialog">Exit</string>
+    <string name="deleteReceipt">Delete</string>
+    <string name="editReceipt">Edit</string>
 </resources>

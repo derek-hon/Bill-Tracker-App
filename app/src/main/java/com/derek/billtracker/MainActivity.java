@@ -49,6 +49,8 @@ import com.theartofdev.edmodo.cropper.CropImageView;
 
 import net.sqlcipher.database.SQLiteDatabase;
 
+import org.junit.Assert;
+
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -82,6 +84,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private static final int IMAGE_PICK_GALLERY_CODE = 1000;
     private static final int IMAGE_PICK_CAMERA_CODE = 1001;
 
+    private Context context;
+
     String imageFilePath;
 
     String[] cameraPermissions;
@@ -99,7 +103,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        //Unit tests
+
         SQLiteDatabase.loadLibs(this);
+
+        context = getApplicationContext();
 
         copyTessDataForTextRecognizor();
 
@@ -119,11 +127,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         expenseLayout     = findViewById(R.id.expenseLayout);
         expenseDataLayout = findViewById(R.id.expenseData);
 
-        cameraFAB      = findViewById(R.id.fab);
-        saveButton     = findViewById(R.id.saveOCR);
-        scannerButton  = findViewById(R.id.scanner);
-        receiptsButton = findViewById(R.id.receipts);
-        expensesButton = findViewById(R.id.expenses);
+        cameraFAB           = findViewById(R.id.fab);
+        saveButton          = findViewById(R.id.saveOCR);
+        scannerButton       = findViewById(R.id.scanner);
+        receiptsButton      = findViewById(R.id.receipts);
+        expensesButton      = findViewById(R.id.expenses);
 
         expenseDropdown = findViewById(R.id.expenseDropdown);
         setExpenseDropdown();
@@ -190,90 +198,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             default:
                 break;
         }
-    }
-
-    void setExpenseDropdown() {
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                String[] items = new String[] { "Current Month", "Year To Day" };
-                ArrayAdapter<String> adapter = new ArrayAdapter<>(MainActivity.this, android.R.layout.simple_spinner_dropdown_item, items);
-                expenseDropdown.setAdapter(adapter);
-                expenseDropdown.setSelection(0);
-            }
-        });
-    }
-
-    private void insertData(ContentValues contentValues) {
-        SQLiteDatabase db = DataHelper.getInstance(this).getWritableDatabase("somePassword123");
-
-        db.insertWithOnConflict(DataHelper.DB_TABLE, null, contentValues, SQLiteDatabase.CONFLICT_IGNORE);
-        db.close();
-
-        Toast.makeText(this, "Successfully saved information", Toast.LENGTH_SHORT).show();
-
-        setLayoutVisibility(R.id.scannerLayout, false);
-    }
-
-    private ContentValues saveInfo() {
-        ContentValues contentValues = new ContentValues();
-
-        contentValues.put(DataHelper.MONTH, ocrMonthText.getText().toString());
-        contentValues.put(DataHelper.DAY, ocrDayText.getText().toString());
-        contentValues.put(DataHelper.YEAR, ocrYearText.getText().toString());
-        contentValues.put(DataHelper.AMOUNT, ocrAmountText.getText().toString());
-        contentValues.put(DataHelper.PATH, imageFilePath);
-
-        return contentValues;
-    }
-
-    private void copyTessDataForTextRecognizor() {
-        Runnable run = new Runnable() {
-            @Override
-            public void run() {
-                AssetManager assetManager = MainActivity.this.getAssets();
-                OutputStream out = null;
-                try {
-                    InputStream in = assetManager.open("eng.traineddata");
-                    String tessPath = tessDataPath();
-                    File tessFolder = new File(tessPath);
-                    if (!tessFolder.exists())
-                        tessFolder.mkdir();
-                    String tessData = tessPath + "/" + "eng.traineddata";
-                    File tessFile = new File(tessData);
-                    if (!tessFile.exists()) {
-                        out = new FileOutputStream(tessData);
-                        byte[] buffer = new byte[1024];
-                        int read = in.read(buffer);
-                        while (read != -1) {
-                            out.write(buffer, 0, read);
-                            read = in.read(buffer);
-                        }
-                        Log.d("MainActivity", " Finished copying file");
-                    } else
-                        Log.d("MainActivity", " Tess file already exists");
-
-                } catch (Exception e) {
-                    Log.d("MainApplication", "couldn't copy with the following error : " + e.toString());
-                } finally {
-                    try {
-                        if (out != null)
-                            out.close();
-                    } catch (Exception e) {
-                        Toast.makeText(MainActivity.this, e.toString(), Toast.LENGTH_SHORT).show();
-                    }
-                }
-            }
-        };
-        new Thread(run).start();
-    }
-
-    private String tessDataPath() {
-        return MainActivity.this.getExternalFilesDir(null) + "/tessdata/";
-    }
-
-    private String getTessDataParentDirectory() {
-        return Objects.requireNonNull(getApplicationContext().getExternalFilesDir(null)).getPath();
     }
 
     private void showImageImportDialog() {
@@ -350,9 +274,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 if (grantResults.length > 0) {
                     System.out.println(Arrays.toString(grantResults));
                     boolean cameraAccepted = grantResults[0] == PackageManager.PERMISSION_GRANTED;
-                    boolean writeStorageAccepted = grantResults[0] == PackageManager.PERMISSION_GRANTED;
 
-                    if (cameraAccepted && writeStorageAccepted)
+                    if (cameraAccepted)
                         pickCamera();
                     else
                         Toast.makeText(this, "Permission Denied", Toast.LENGTH_SHORT).show();
@@ -422,6 +345,176 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
+    protected void setOCRText(final String[] text) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                ocrMonthText.setText(text[0]);
+                ocrDayText.setText(text[1]);
+                ocrYearText.setText(text[2]);
+                ocrAmountText.setText(text[3]);
+            }
+        });
+    }
+
+    private void setImageView(final Uri croppedImage) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                previewImageView.setImageURI(croppedImage);
+            }
+        });
+    }
+
+
+    //*******************************************Begin helpers*******************************************
+    void setExpenseDropdown() {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                String[] items = new String[] { "Current Month", "Year To Day" };
+                ArrayAdapter<String> adapter = new ArrayAdapter<>(context, android.R.layout.simple_spinner_dropdown_item, items);
+                expenseDropdown.setAdapter(adapter);
+                expenseDropdown.setSelection(0);
+            }
+        });
+    }
+
+    private void insertData(ContentValues contentValues) {
+        SQLiteDatabase db = DataHelper.getInstance(this).getWritableDatabase("somePassword123");
+
+        db.insertWithOnConflict(DataHelper.DB_TABLE, null, contentValues, SQLiteDatabase.CONFLICT_IGNORE);
+        db.close();
+
+        Toast.makeText(this, "Successfully saved information", Toast.LENGTH_SHORT).show();
+
+        setLayoutVisibility(R.id.scannerLayout, false);
+    }
+
+    private ContentValues saveInfo() {
+        ContentValues contentValues = new ContentValues();
+
+        contentValues.put(DataHelper.MONTH, ocrMonthText.getText().toString());
+        contentValues.put(DataHelper.DAY, ocrDayText.getText().toString());
+        contentValues.put(DataHelper.YEAR, ocrYearText.getText().toString());
+        contentValues.put(DataHelper.AMOUNT, ocrAmountText.getText().toString());
+        contentValues.put(DataHelper.PATH, imageFilePath);
+
+        return contentValues;
+    }
+
+    /**
+     * Changes the button's background resource to nothing or the drawable
+     *
+     * @param buttonId id of the button
+     */
+    void setButtonBackground(final int buttonId) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                switch (buttonId) {
+                    case R.id.scanner:
+                        receiptsButton.setBackgroundResource(0);
+                        expensesButton.setBackgroundResource(0);
+                        scannerButton.setBackground(ResourcesCompat.getDrawable(getResources(), R.drawable.textlines, null));
+                        break;
+                    case R.id.receipts:
+                        scannerButton.setBackgroundResource(0);
+                        expensesButton.setBackgroundResource(0);
+                        receiptsButton.setBackground(ResourcesCompat.getDrawable(getResources(), R.drawable.textlines, null));
+                        break;
+                    case R.id.expenses:
+                        scannerButton.setBackgroundResource(0);
+                        expensesButton.setBackgroundResource(0);
+                        expensesButton.setBackground(ResourcesCompat.getDrawable(getResources(), R.drawable.textlines, null));
+                        break;
+                    default:
+                        Toast.makeText(context, "Error occurred while clicking button", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+    }
+
+    /**
+     * Responsible for switching the display depending on which tab was selected.
+     *
+     * @param layout resource id for the layout
+     * @param results to check if the scanner was just used
+     */
+    void setLayoutVisibility(final int layout, final boolean results) {
+        final Semaphore mutex = new Semaphore(0);
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                switch (layout) {
+                    case R.id.scannerLayout:
+                        checkResultView(results);
+                        break;
+                    case R.id.receiptLayout:
+                        scannerLayout.setVisibility(View.GONE);
+                        expenseLayout.setVisibility(View.GONE);
+                        receiptLayout.setVisibility(View.VISIBLE);
+                        break;
+                    case R.id.expenseLayout:
+                        scannerLayout.setVisibility(View.GONE);
+                        receiptLayout.setVisibility(View.GONE);
+                        expenseLayout.setVisibility(View.VISIBLE);
+                        break;
+                    default:
+                        Toast.makeText(context, "Error setting different display", Toast.LENGTH_SHORT).show();
+                }
+
+                mutex.release();
+            }
+        });
+        try {
+            mutex.acquire();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Changes to the scanner tab or results of the scan
+     *
+     * @param results determines whether scanner was used
+     */
+    void checkResultView(boolean results) {
+        if (results) {
+            scannerLayout.setVisibility(View.GONE);
+            resultsView.setVisibility(View.VISIBLE);
+        } else {
+            receiptLayout.setVisibility(View.GONE);
+            expenseLayout.setVisibility(View.GONE);
+            resultsView.setVisibility(View.GONE);
+            scannerLayout.setVisibility(View.VISIBLE);
+        }
+    }
+
+    /**
+     * Retrieves a uri from a parsed path which is retrieved from inserting an image bitmap into the context's
+     * content.
+     *
+     * @param context context
+     * @param image image bitmap
+     * @return uri
+     */
+    private Uri getImageURI(Context context, Bitmap image) {
+        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        image.compress(Bitmap.CompressFormat.JPEG, 100, bytes);
+
+        String path = MediaStore.Images.Media.insertImage(context.getContentResolver(), image, "Title", null);
+        return Uri.parse(path);
+    }
+
+    /**
+     * Similar to the function obtaining the real path, but instead ensures that the data from the
+     * image media is in the columns that are returned by the query. This same column is
+     * then retrieved as the image path.
+     *
+     * @param imageURI images uri
+     * @return string path
+     */
     private String getSelectedImagePath(Uri imageURI) {
         String path = "";
         String[] projection = {MediaStore.Images.Media.DATA};
@@ -439,14 +532,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         return path;
     }
 
-    private Uri getImageURI(Context context, Bitmap image) {
-        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
-        image.compress(Bitmap.CompressFormat.JPEG, 100, bytes);
-
-        String path = MediaStore.Images.Media.insertImage(context.getContentResolver(), image, "Title", null);
-        return Uri.parse(path);
-    }
-
+    /**
+     * Makes a query to the data storage using the images URI(uniform resource identifier). Once
+     * the query is completed we obtain the column index for the image and retrieve the string path
+     * which is in the column of the image column's data.
+     *
+     * @param imageURI uri
+     * @return string path
+     */
     private String getRealPathFromUri(Uri imageURI) {
         String path = "";
 
@@ -464,24 +557,96 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         return path;
     }
 
+    /**
+     * Just a helper function that rounds values according to big decimal
+     *
+     * @param value value to be rounded
+     * @return double value that is rounded
+     */
     static double round(double value) {
         BigDecimal bd = new BigDecimal(value);
         bd = bd.setScale(2, RoundingMode.HALF_UP);
         return bd.doubleValue();
     }
 
+    /**
+     * Abstracted out long switch case for determining month name from the number value. This is for
+     * the expense tab for year to day as well as receipt tab for categorizing receipts
+     *
+     * @param monthNumber month in number format
+     * @return string name of month
+     */
+    String getMonthText(int monthNumber) {
+        String monthText = "";
+        switch (monthNumber) {
+            case 1:
+                monthText = "January";
+                break;
+            case 2:
+                monthText = "February";
+                break;
+            case 3:
+                monthText = "March";
+                break;
+            case 4:
+                monthText = "April";
+                break;
+            case 5:
+                monthText = "May";
+                break;
+            case 6:
+                monthText = "June";
+                break;
+            case 7:
+                monthText = "July";
+                break;
+            case 8:
+                monthText = "August";
+                break;
+            case 9:
+                monthText = "September";
+                break;
+            case 10:
+                monthText = "October";
+                break;
+            case 11:
+                monthText = "November";
+                break;
+            case 12:
+                monthText = "December";
+                break;
+        }
+        return monthText;
+    }
+
+
+    //*******************************************end helpers*******************************************
+
+
+
+
+
+
+    //*******************************************begin receipt tab*******************************************
+
+    /**
+     * Master method for the receipt tab. Sets all the data for the receipt tab. Currently only shows
+     * receipts from beginning of the current year to the current month.
+     *
+     * TODO: Need to make receipt tab go further back than only the current year
+     */
     void setReceiptData() {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
                 int month = Calendar.getInstance().get(Calendar.MONTH) + 1;
-                SQLiteDatabase db = DataHelper.getInstance(MainActivity.this).getReadableDatabase("somePassword123");
+                SQLiteDatabase db = DataHelper.getInstance(context).getReadableDatabase("somePassword123");
                 String[] column = new String[]{DataHelper.DAY, DataHelper.MONTH, DataHelper.YEAR, DataHelper.PATH};
 
                 receiptLayout.removeAllViews();
 
                 for (int i = month; i > 0; i--) {
-                    TextView currentMonth = new TextView(MainActivity.this);
+                    TextView currentMonth = new TextView(context);
                     currentMonth.setText(getMonthText(i));
                     currentMonth.setTextSize(TypedValue.COMPLEX_UNIT_SP, 23f);
                     currentMonth.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
@@ -498,6 +663,121 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         });
     }
 
+    /**
+     * Queries the db for rows that have the months passed in. It will generate a linear layout with
+     * a thumbnail of the receipt, and the full date below this thumbnail.
+     *
+     * @param month month argument
+     * @param readDB database instance
+     * @param columnArray which columns to be viewed
+     * @return linear layout to be appended
+     */
+    LinearLayout getImages(String[] month, SQLiteDatabase readDB, String[] columnArray) {
+        LinearLayout imagesLayout = new LinearLayout(context);
+        imagesLayout.setOrientation(LinearLayout.HORIZONTAL);
+        imagesLayout.setPadding(10, 0, 10, 0);
+
+        Cursor cursor = readDB.query(
+                DataHelper.DB_TABLE,
+                columnArray,
+                DataHelper.MONTH + " = ?",
+                month,
+                null,
+                null,
+                DataHelper.DAY + " DESC");
+
+        if (cursor.getCount() > 0) {
+            cursor.moveToFirst();
+            while (!cursor.isAfterLast()) {
+                LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+
+                LinearLayout imageLayout = new LinearLayout(context);
+                imageLayout.setOrientation(LinearLayout.VERTICAL);
+                imageLayout.setBackgroundColor(Color.parseColor("#FFEFC4"));
+                imageLayout.setLayoutParams(params);
+                imageLayout.setPadding(5, 0, 0, 5);
+
+                String date = cursor.getString(0) + "/" + cursor.getString(1) + "/" + cursor.getString(2);
+                Bitmap receiptThumbnail = ThumbnailUtils.extractThumbnail(BitmapFactory.decodeFile(cursor.getString(3)), 128, 128);
+
+                ImageView receiptView = new ImageView(context);
+                receiptView.setTag(cursor.getString(3));
+                receiptView.setOnClickListener(viewReceiptDetails);
+
+                receiptView.setImageBitmap(receiptThumbnail);
+                receiptView.setPadding(10, 0, 10, 0);
+
+                TextView dateView = new TextView(context);
+                dateView.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
+                dateView.setText(date);
+
+                imageLayout.addView(receiptView);
+                imageLayout.addView(dateView);
+                imagesLayout.addView(imageLayout);
+
+                cursor.moveToNext();
+            } //end while
+        } //end if
+
+        if (!cursor.isClosed())
+            cursor.close();
+
+        return imagesLayout;
+    }
+
+    View.OnClickListener viewReceiptDetails = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            viewReceiptData(v.getTag().toString(), v);
+        }
+    };
+
+    /**
+     * Instantiates fragment for dialog and passes path for the receipt which is not currently used,
+     * implementation for it needs to be rethought of. It also passes the bitmap of the image
+     * for it to be viewed in the fragment instead of just looking at a thumbnail.
+     *
+     * @param path image path
+     * @param view button view
+     */
+    void viewReceiptData(final String path, final View view) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                File receiptFile = new File(path);
+                BitmapFactory.Options options = new BitmapFactory.Options();
+                Bitmap bitmap = BitmapFactory.decodeFile(receiptFile.getAbsolutePath(), options);
+
+                ReceiptDialogFragment receiptDialogFragment = new ReceiptDialogFragment();
+
+                Bundle bundle = new Bundle();
+                bundle.putParcelable("bitmap", bitmap);
+                bundle.putString("path", view.getTag().toString());
+                receiptDialogFragment.setArguments(bundle);
+
+                receiptDialogFragment.show(getSupportFragmentManager(), "ReceiptDialog");
+            }
+        });
+    }
+
+    //*******************************************end receipt tab*******************************************
+
+
+
+
+
+
+
+    //*******************************************begin expense tab*******************************************
+
+    /**
+     * Master method for expense tab. Queries the database either with no selection or the current
+     * month. Reading each row will add and store the amounts to the proper time intervals. Adds the
+     * views to the display and a text bubble that tells you how much time is left and how much
+     * you have spent up to date.
+     *
+     * @param option Determines query selection
+     */
     void setExpenseData(final int option) {
         runOnUiThread(new Runnable() {
             @Override
@@ -509,7 +789,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 String[] args;
                 String selection,
                        orderBy,
-                       totalText = "";
+                       totalText;
 
                 int currentMonth = Calendar.getInstance().get(Calendar.MONTH) + 1,
                     daysInMonth, year = 0;
@@ -525,7 +805,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     orderBy = DataHelper.MONTH + " ASC";
                 }
 
-                SQLiteDatabase db = DataHelper.getInstance(MainActivity.this).getReadableDatabase("somePassword123");
+                SQLiteDatabase db = DataHelper.getInstance(context).getReadableDatabase("somePassword123");
                 String[] column = new String[]{DataHelper.DAY, DataHelper.MONTH, DataHelper.AMOUNT, DataHelper.YEAR};
 
                 Cursor cursor = db.query(
@@ -574,7 +854,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         Calendar mycal = new GregorianCalendar(year, currentMonth - 1, 1);
                         daysInMonth = mycal.getActualMaximum(Calendar.DAY_OF_MONTH);
                     }
-                    
+
                     if (option == 0) {
                         setExpenseLayout(5, weeks);
                         totalText  = "$" + total + " spent with " +
@@ -589,7 +869,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                 " days left in the year";
                     }
 
-                    TextView totalView = new TextView(MainActivity.this);
+                    TextView totalView = new TextView(context);
                     totalView.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
                     totalView.setPadding(0, 20, 0, 0);
                     totalView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20);
@@ -597,17 +877,24 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     expenseDataLayout.addView(totalView);
                 } //end if
 
-                if (cursor != null && !cursor.isClosed())
+                if (!cursor.isClosed())
                     cursor.close();
                 db.close();
             } //run
         });
     } //setExpenseData
 
+    /**
+     * Loops through each time interval and creates a text view for the time interval and total amount
+     * in that time interval then adds it to the layout.
+     *
+     * @param limit upper limit for for loop
+     * @param amount array of dollar amount per time period
+     */
     void setExpenseLayout(int limit, double[] amount) {
         String timeInterval;
         for (int i = 0 ; i < limit ; i ++) {
-            TextView intervalView = new TextView(MainActivity.this);
+            TextView intervalView = new TextView(context);
             intervalView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 25);
             intervalView.setPadding(30, 15, 0, 0);
 
@@ -624,7 +911,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         } //end for
     } //setExpenseLayout
 
-    double[] separateIntoWeeks(int day, double amount) {
+    /**
+     * Separates the day into a certain week number
+     *
+     * @param day number of day
+     * @param amount receipt amount
+     * @return double array containing week number and price amount
+     */
+    static double[] separateIntoWeeks(int day, double amount) {
         if (day <= 7)
             return new double[] {0, amount};
         else if (day <= 14)
@@ -637,222 +931,137 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             return new double[] {4, amount};
     }
 
-    String getMonthText(int monthNumber) {
-        String monthText = "";
-        switch (monthNumber) {
-            case 1:
-                monthText = "January";
-                break;
-            case 2:
-                monthText = "February";
-                break;
-            case 3:
-                monthText = "March";
-                break;
-            case 4:
-                monthText = "April";
-                break;
-            case 5:
-                monthText = "May";
-                break;
-            case 6:
-                monthText = "June";
-                break;
-            case 7:
-                monthText = "July";
-                break;
-            case 8:
-                monthText = "August";
-                break;
-            case 9:
-                monthText = "September";
-                break;
-            case 10:
-                monthText = "October";
-                break;
-            case 11:
-                monthText = "November";
-                break;
-            case 12:
-                monthText = "December";
-                break;
-        }
-        return monthText;
-    }
+    //*******************************************end expense tab*******************************************
 
-    LinearLayout getImages(String[] month, SQLiteDatabase readDB, String[] columnArray) {
-        LinearLayout imagesLayout = new LinearLayout(MainActivity.this);
-        imagesLayout.setOrientation(LinearLayout.HORIZONTAL);
-        imagesLayout.setPadding(10, 0, 10, 0);
 
-        Cursor cursor = readDB.query(
-                DataHelper.DB_TABLE,
-                columnArray,
-                DataHelper.MONTH + " = ?",
-                month,
-                null,
-                null,
-                DataHelper.DAY + " DESC");
 
-        if (cursor.getCount() > 0) {
-            cursor.moveToFirst();
-            while (!cursor.isAfterLast()) {
-                LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
 
-                LinearLayout imageLayout = new LinearLayout(MainActivity.this);
-                imageLayout.setOrientation(LinearLayout.VERTICAL);
-                imageLayout.setBackgroundColor(Color.parseColor("#FFEFC4"));
-                imageLayout.setLayoutParams(params);
-                imageLayout.setPadding(5, 0, 0, 5);
-
-                String date = cursor.getString(0) + "/" + cursor.getString(1) + "/" + cursor.getString(2);
-                Bitmap receiptThumbnail = ThumbnailUtils.extractThumbnail(BitmapFactory.decodeFile(cursor.getString(3)), 128, 128);
-
-                ImageView receiptView = new ImageView(MainActivity.this);
-                receiptView.setTag(cursor.getString(3));
-                receiptView.setOnClickListener(viewReceiptDetails);
-
-                receiptView.setImageBitmap(receiptThumbnail);
-                receiptView.setPadding(10, 0, 10, 0);
-
-                TextView dateView = new TextView(MainActivity.this);
-                dateView.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
-                dateView.setText(date);
-
-                imageLayout.addView(receiptView);
-                imageLayout.addView(dateView);
-                imagesLayout.addView(imageLayout);
-
-                cursor.moveToNext();
-            } //end while
-        } //end if
-
-        if (cursor != null && !cursor.isClosed())
-            cursor.close();
-
-        return imagesLayout;
-    }
-
-    View.OnClickListener viewReceiptDetails = new View.OnClickListener() {
-        @Override
-        public void onClick(View v) {
-            viewReceiptData(v.getTag().toString());
-        }
-    };
-
-    void viewReceiptData(final String path) {
+    /*
+        TODO: So far trying to include it in the dialog fragment does not work out because of application context error.
+     */
+    void checkDeleteDialog(final String path) {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                File receiptFile = new File(path);
-                BitmapFactory.Options options = new BitmapFactory.Options();
-                Bitmap bitmap = BitmapFactory.decodeFile(receiptFile.getAbsolutePath(), options);
+                String text = "Are you sure you want to delete this receipt information from the app?",
+                        yes  = "Delete",
+                        no   = "Cancel";
+                if (context != null) {
 
-                ReceiptDialogFragment receiptDialogFragment = new ReceiptDialogFragment();
+                    final AlertDialog.Builder builder = new AlertDialog.Builder(context);
+                    builder.setMessage(text)
+                            .setPositiveButton(yes, new DialogInterface.OnClickListener() {
+                                public void onClick(DialogInterface dialog, int id) {
+                                    SQLiteDatabase db = DataHelper.getInstance(context).getReadableDatabase("somePassword123");
+                                    String[] column = new String[] {"rule", DataHelper.PATH},
+                                            args   = new String[] {path};
+                                    String selection = DataHelper.PATH + "=?";
 
-                Bundle bundle = new Bundle();
-                bundle.putParcelable("bitmap", bitmap);
-                receiptDialogFragment.setArguments(bundle);
+                                    Cursor cursor = db.query(
+                                            DataHelper.DB_TABLE,
+                                            column,
+                                            selection,
+                                            args,
+                                            null,
+                                            null,
+                                            null);
 
-                receiptDialogFragment.show(getSupportFragmentManager(), "ReceiptDialog");
-            }
-        });
-    }
+                                    if (cursor.getCount() > 0) {
+                                        cursor.moveToFirst();
 
-    void setButtonBackground(final int buttonId) {
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                switch (buttonId) {
-                    case R.id.scanner:
-                        receiptsButton.setBackgroundResource(0);
-                        expensesButton.setBackgroundResource(0);
-                        scannerButton.setBackground(ResourcesCompat.getDrawable(getResources(), R.drawable.textlines, null));
-                        break;
-                    case R.id.receipts:
-                        scannerButton.setBackgroundResource(0);
-                        expensesButton.setBackgroundResource(0);
-                        receiptsButton.setBackground(ResourcesCompat.getDrawable(getResources(), R.drawable.textlines, null));
-                        break;
-                    case R.id.expenses:
-                        scannerButton.setBackgroundResource(0);
-                        expensesButton.setBackgroundResource(0);
-                        expensesButton.setBackground(ResourcesCompat.getDrawable(getResources(), R.drawable.textlines, null));
-                        break;
-                    default:
-                        Toast.makeText(MainActivity.this, "Error occurred while clicking button", Toast.LENGTH_SHORT).show();
+                                        while (!cursor.isAfterLast()) {
+                                            System.out.println(cursor.getString(0));
+                                            System.out.println(cursor.getString(1));
+                                            cursor.moveToNext();
+                                        } //end while
+                                    } //end if
+
+                                    if (!cursor.isClosed())
+                                        cursor.close();
+                                    db.close();
+                                }
+                            })
+                            .setNegativeButton(no, new DialogInterface.OnClickListener() {
+                                public void onClick(DialogInterface dialog, int id) {
+                                    dialog.dismiss();
+                                }
+                            });
+                    builder.show();
                 }
             }
         });
     }
 
-    void setLayoutVisibility(final int layout, final boolean results) {
-        final Semaphore mutex = new Semaphore(0);
-        runOnUiThread(new Runnable() {
+    public class UnitTests {
+
+        public UnitTests() {
+
+        }
+        public void checkIfDoubleArray () {
+            double[] expected = new double[] {0, 5.1},
+                    method   = MainActivity.separateIntoWeeks(5, 5.1);
+
+            Assert.assertArrayEquals(expected, method, 0);
+        }
+
+    }
+
+
+
+
+    //*******************************************begin tess api*******************************************
+
+    private void copyTessDataForTextRecognizor() {
+        Runnable run = new Runnable() {
             @Override
             public void run() {
-                switch (layout) {
-                    case R.id.scannerLayout:
-                        checkResultView(results);
-                        break;
-                    case R.id.receiptLayout:
-                        scannerLayout.setVisibility(View.GONE);
-                        expenseLayout.setVisibility(View.GONE);
-                        receiptLayout.setVisibility(View.VISIBLE);
-                        break;
-                    case R.id.expenseLayout:
-                        scannerLayout.setVisibility(View.GONE);
-                        receiptLayout.setVisibility(View.GONE);
-                        expenseLayout.setVisibility(View.VISIBLE);
-                        break;
-                    default:
-                        Toast.makeText(MainActivity.this, "Error setting different display", Toast.LENGTH_SHORT).show();
+                AssetManager assetManager = context.getAssets();
+                OutputStream out = null;
+                try {
+                    InputStream in = assetManager.open("eng.traineddata");
+                    String tessPath = tessDataPath();
+                    File tessFolder = new File(tessPath);
+                    if (!tessFolder.exists())
+                        tessFolder.mkdir();
+                    String tessData = tessPath + "/" + "eng.traineddata";
+                    File tessFile = new File(tessData);
+                    if (!tessFile.exists()) {
+                        out = new FileOutputStream(tessData);
+                        byte[] buffer = new byte[1024];
+                        int read = in.read(buffer);
+                        while (read != -1) {
+                            out.write(buffer, 0, read);
+                            read = in.read(buffer);
+                        }
+                        Log.d("MainActivity", " Finished copying file");
+                    } else
+                        Log.d("MainActivity", " Tess file already exists");
+
+                } catch (Exception e) {
+                    Log.d("MainApplication", "couldn't copy with the following error : " + e.toString());
+                } finally {
+                    try {
+                        if (out != null)
+                            out.close();
+                    } catch (Exception e) {
+                        Toast.makeText(context, e.toString(), Toast.LENGTH_SHORT).show();
+                    }
                 }
-
-                mutex.release();
             }
-        });
-        try {
-            mutex.acquire();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+        };
+        new Thread(run).start();
     }
 
-    void checkResultView(boolean results) {
-        if (results) {
-            scannerLayout.setVisibility(View.GONE);
-            resultsView.setVisibility(View.VISIBLE);
-        } else {
-            receiptLayout.setVisibility(View.GONE);
-            expenseLayout.setVisibility(View.GONE);
-            resultsView.setVisibility(View.GONE);
-            scannerLayout.setVisibility(View.VISIBLE);
-        }
+    private String tessDataPath() {
+        return context.getExternalFilesDir(null) + "/tessdata/";
     }
 
-    protected void setOCRText(final String[] text) {
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                ocrMonthText.setText(text[0]);
-                ocrDayText.setText(text[1]);
-                ocrYearText.setText(text[2]);
-                ocrAmountText.setText(text[3]);
-            }
-        });
-    }
-
-    private void setImageView(final Uri croppedImage) {
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                previewImageView.setImageURI(croppedImage);
-            }
-        });
+    private String getTessDataParentDirectory() {
+        return Objects.requireNonNull(getApplicationContext().getExternalFilesDir(null)).getPath();
     }
 
     private class AsyncTessAPITask extends AsyncTask<Bitmap, Integer, String> {
+
 
         private final String TAG = MainActivity.class.getSimpleName();
         private TessBaseAPI tessBaseAPI;
