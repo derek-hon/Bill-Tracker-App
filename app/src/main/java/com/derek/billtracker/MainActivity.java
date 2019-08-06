@@ -103,8 +103,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        //Unit tests
-
         SQLiteDatabase.loadLibs(this);
 
         context = getApplicationContext();
@@ -200,6 +198,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
+    //*******************************************Begin scanner*******************************************
+
+    /**
+     * Simple alert dialog that will get proper permissions for whichever choice is made. Camera permissions
+     * then starting up camera if camera is picked, storage permissions and image gallery if gallery is picked.
+     */
     private void showImageImportDialog() {
         String[] items = {"Camera", "Gallery"};
         AlertDialog.Builder dialog = new AlertDialog.Builder(this);
@@ -226,6 +230,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         dialog.create().show();
     }
 
+    /**
+     * Checks the manifest for camera permission and context for storage access permission
+     * @return permission status
+     */
     private boolean checkCameraPermission() {
         return ContextCompat.checkSelfPermission(this,
                 Manifest.permission.CAMERA) == (PackageManager.PERMISSION_GRANTED)
@@ -234,20 +242,33 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         Manifest.permission.WRITE_EXTERNAL_STORAGE) == (PackageManager.PERMISSION_GRANTED);
     }
 
+    /**
+     * Function to request camera permission.
+     */
     private void requestCameraPermission() {
         ActivityCompat.requestPermissions(this, cameraPermissions, CAMERA_REQUEST_CODE);
     }
 
+    /**
+     * Checks context for storage permission
+     * @return permission status
+     */
     private boolean checkStoragePermission() {
         return ContextCompat.checkSelfPermission(this,
                 Manifest.permission.WRITE_EXTERNAL_STORAGE) == (PackageManager.PERMISSION_GRANTED);
     }
 
+    /**
+     * Function to request storage permission
+     */
     private void requestStoragePermission() {
-        System.out.println("requesting storage permission");
         ActivityCompat.requestPermissions(this, storagePermissions, STORAGE_REQUEST_CODE);
     }
 
+    /**
+     * Sets information to the uri and appends it onto the camera intent before starting the camera
+     * activity.
+     */
     private void pickCamera() {
         ContentValues values = new ContentValues();
         values.put(MediaStore.Images.Media.TITLE, "NewPicture");
@@ -259,12 +280,24 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         startActivityForResult(cameraIntent, IMAGE_PICK_CAMERA_CODE);
     }
 
+    /**
+     * Specifies the folder to retrieve from for the intent before starting it.
+     */
     private void pickGallery() {
         Intent galleryIntent = new Intent(Intent.ACTION_PICK);
         galleryIntent.setType("image/*");
         startActivityForResult(galleryIntent, IMAGE_PICK_GALLERY_CODE);
     }
 
+    /**
+     * Function is called after user chooses whether or not to allow the permissions for the choice
+     * they made. If permissions are granted then the intents will be executed to scan the receipt
+     * from gallery or from image taken.
+     *
+     * @param requestCode permission request code
+     * @param permissions permissions being requested
+     * @param grantResults choice made by user
+     */
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
@@ -272,7 +305,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         switch (requestCode) {
             case CAMERA_REQUEST_CODE:
                 if (grantResults.length > 0) {
-                    System.out.println(Arrays.toString(grantResults));
                     boolean cameraAccepted = grantResults[0] == PackageManager.PERMISSION_GRANTED;
 
                     if (cameraAccepted)
@@ -296,6 +328,19 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
+    /**
+     * Makes sure that the request isn't cancelled and that the result is ok before checking which
+     * request was made. If the request was choosing a gallery image or taking a picture then the
+     * file path will be retrieved from this after the crop image activity is called. If the action
+     * was to crop the image then the bitmap of the image resulting from the crop activity will
+     * be sent to the asynchronous class responsible for scanning using OCR.
+     *
+     * @see AsyncTessAPITask
+     *
+     * @param requestCode request code
+     * @param resultCode result from request
+     * @param data intent data
+     */
     @Override
     public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         if (requestCode != RESULT_CANCELED) {
@@ -345,6 +390,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
+    /**
+     * After the OCR is done this function will be called to set the text which may or may not have
+     * been retrieved from the receipt and be put in the text fields.
+     * @param text array of retrieved text
+     */
     protected void setOCRText(final String[] text) {
         runOnUiThread(new Runnable() {
             @Override
@@ -357,6 +407,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         });
     }
 
+    /**
+     * A preview of the image which was cropped will be displayed
+     * @param croppedImage image uri
+     */
     private void setImageView(final Uri croppedImage) {
         runOnUiThread(new Runnable() {
             @Override
@@ -365,6 +419,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
         });
     }
+
+    //*******************************************End scanner*******************************************
 
 
     //*******************************************Begin helpers*******************************************
