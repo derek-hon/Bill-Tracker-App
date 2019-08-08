@@ -12,6 +12,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.ColorDrawable;
 import android.media.ThumbnailUtils;
 import android.net.Uri;
 import android.os.AsyncTask;
@@ -27,6 +28,7 @@ import android.support.v7.app.ActionBar;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.text.Html;
 import android.util.Log;
 import android.util.TypedValue;
 import android.view.View;
@@ -68,6 +70,9 @@ import java.util.concurrent.Semaphore;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ *
+ */
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
     EditText ocrYearText, ocrMonthText, ocrDayText, ocrAmountText;
     ImageView previewImageView;
@@ -110,7 +115,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         copyTessDataForTextRecognizor();
 
         ActionBar actionBar = getSupportActionBar();
-        Objects.requireNonNull(actionBar).setSubtitle("Click the image button to insert an image");
+        Objects.requireNonNull(actionBar).setSubtitle("");
+        actionBar.setBackgroundDrawable(new ColorDrawable(Color.parseColor("#b8d177")));
+        actionBar.setTitle(Html.fromHtml("<font color='#000000'>Receipt Expense Tracker </font>"));
 
         ocrYearText   = findViewById(R.id.receiptYear);
         ocrMonthText  = findViewById(R.id.receiptMonth);
@@ -195,8 +202,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 break;
             default:
                 break;
-        }
-    }
+        } //end switch
+    } //onClick
 
     //*******************************************Begin scanner*******************************************
 
@@ -228,7 +235,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
         });
         dialog.create().show();
-    }
+    } //showImageImportDialog
 
     /**
      * Checks the manifest for camera permission and context for storage access permission
@@ -240,14 +247,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 &&
                 ContextCompat.checkSelfPermission(this,
                         Manifest.permission.WRITE_EXTERNAL_STORAGE) == (PackageManager.PERMISSION_GRANTED);
-    }
+    } //checkCameraPermission
 
     /**
      * Function to request camera permission.
      */
     private void requestCameraPermission() {
         ActivityCompat.requestPermissions(this, cameraPermissions, CAMERA_REQUEST_CODE);
-    }
+    } //requestCameraPermission
 
     /**
      * Checks context for storage permission
@@ -256,14 +263,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private boolean checkStoragePermission() {
         return ContextCompat.checkSelfPermission(this,
                 Manifest.permission.WRITE_EXTERNAL_STORAGE) == (PackageManager.PERMISSION_GRANTED);
-    }
+    } //checkStoragePermission
 
     /**
      * Function to request storage permission
      */
     private void requestStoragePermission() {
         ActivityCompat.requestPermissions(this, storagePermissions, STORAGE_REQUEST_CODE);
-    }
+    } //requestStoragePermission
 
     /**
      * Sets information to the uri and appends it onto the camera intent before starting the camera
@@ -278,7 +285,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         Intent cameraIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
         cameraIntent.putExtra(MediaStore.EXTRA_OUTPUT, imageURI);
         startActivityForResult(cameraIntent, IMAGE_PICK_CAMERA_CODE);
-    }
+    } //pickCamera
 
     /**
      * Specifies the folder to retrieve from for the intent before starting it.
@@ -287,7 +294,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         Intent galleryIntent = new Intent(Intent.ACTION_PICK);
         galleryIntent.setType("image/*");
         startActivityForResult(galleryIntent, IMAGE_PICK_GALLERY_CODE);
-    }
+    } //pickGallery
 
     /**
      * Function is called after user chooses whether or not to allow the permissions for the choice
@@ -311,7 +318,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         pickCamera();
                     else
                         Toast.makeText(this, "Permission Denied", Toast.LENGTH_SHORT).show();
-                }
+                } //end if
                 break;
             case STORAGE_REQUEST_CODE:
                 if (grantResults.length > 0) {
@@ -321,12 +328,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         pickGallery();
                     else
                         Toast.makeText(this, "Permission Denied", Toast.LENGTH_SHORT).show();
-                }
+                } //end if
                 break;
             default:
                 break;
-        }
-    }
+        } //end switch
+    } //onRequestPermissionResult
 
     /**
      * Makes sure that the request isn't cancelled and that the result is ok before checking which
@@ -388,7 +395,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 }
             }
         }
-    }
+    } //onActivityResult
 
     /**
      * After the OCR is done this function will be called to set the text which may or may not have
@@ -405,7 +412,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 ocrAmountText.setText(text[3]);
             }
         });
-    }
+    } //setOCRText
 
     /**
      * A preview of the image which was cropped will be displayed
@@ -418,7 +425,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 previewImageView.setImageURI(croppedImage);
             }
         });
-    }
+    } //setImageView
 
     //*******************************************End scanner*******************************************
 
@@ -434,7 +441,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 expenseDropdown.setSelection(0);
             }
         });
-    }
+    } //setExpenseDropdown
 
     private void insertData(ContentValues contentValues) {
         SQLiteDatabase db = DataHelper.getInstance(this).getWritableDatabase("somePassword123");
@@ -445,7 +452,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         Toast.makeText(this, "Successfully saved information", Toast.LENGTH_SHORT).show();
 
         setLayoutVisibility(R.id.scannerLayout, false);
-    }
+    } //insertData
 
     private ContentValues saveInfo() {
         ContentValues contentValues = new ContentValues();
@@ -457,7 +464,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         contentValues.put(DataHelper.PATH, imageFilePath);
 
         return contentValues;
-    }
+    } //saveInfo
 
     /**
      * Changes the button's background resource to nothing or the drawable
@@ -481,15 +488,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         break;
                     case R.id.expenses:
                         scannerButton.setBackgroundResource(0);
-                        expensesButton.setBackgroundResource(0);
+                        receiptsButton.setBackgroundResource(0);
                         expensesButton.setBackground(ResourcesCompat.getDrawable(getResources(), R.drawable.textlines, null));
                         break;
                     default:
                         Toast.makeText(context, "Error occurred while clicking button", Toast.LENGTH_SHORT).show();
-                }
+                } //end switch
             }
         });
-    }
+    } //setButtonBackground
 
     /**
      * Responsible for switching the display depending on which tab was selected.
@@ -525,10 +532,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         });
         try {
             mutex.acquire();
-        } catch (InterruptedException e) {
+        } //end try
+        catch (InterruptedException e) {
             e.printStackTrace();
-        }
-    }
+        } //end catch
+    } //setLayoutVisibility
 
     /**
      * Changes to the scanner tab or results of the scan
@@ -545,7 +553,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             resultsView.setVisibility(View.GONE);
             scannerLayout.setVisibility(View.VISIBLE);
         }
-    }
+    } //checkResultView
 
     /**
      * Retrieves a uri from a parsed path which is retrieved from inserting an image bitmap into the context's
@@ -586,7 +594,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         if (path == null)
             path = "Not found";
         return path;
-    }
+    } //getSelectedImagePath
 
     /**
      * Makes a query to the data storage using the images URI(uniform resource identifier). Once
@@ -611,7 +619,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         if (path == null)
             path = "Not found";
         return path;
-    }
+    } //getRealPathFromUri
 
     /**
      * Just a helper function that rounds values according to big decimal
@@ -623,7 +631,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         BigDecimal bd = new BigDecimal(value);
         bd = bd.setScale(2, RoundingMode.HALF_UP);
         return bd.doubleValue();
-    }
+    } //round
 
     /**
      * Abstracted out long switch case for determining month name from the number value. This is for
@@ -673,7 +681,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 break;
         }
         return monthText;
-    }
+    } //getMonthText
 
 
     //*******************************************end helpers*******************************************
@@ -717,7 +725,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 db.close();
             }
         });
-    }
+    } //setReceiptData
 
     /**
      * Queries the db for rows that have the months passed in. It will generate a linear layout with
@@ -779,7 +787,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             cursor.close();
 
         return imagesLayout;
-    }
+    } //getImages
 
     View.OnClickListener viewReceiptDetails = new View.OnClickListener() {
         @Override
@@ -814,7 +822,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 receiptDialogFragment.show(getSupportFragmentManager(), "ReceiptDialog");
             }
         });
-    }
+    } //viewReceiptData
 
     //*******************************************end receipt tab*******************************************
 
@@ -985,7 +993,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             return new double[] {3, amount};
         else
             return new double[] {4, amount};
-    }
+    } //separateIntoWeeks
 
     //*******************************************end expense tab*******************************************
 
@@ -1118,7 +1126,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private class AsyncTessAPITask extends AsyncTask<Bitmap, Integer, String> {
 
-
         private final String TAG = MainActivity.class.getSimpleName();
         private TessBaseAPI tessBaseAPI;
 
@@ -1128,9 +1135,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
             try {
                 tessBaseAPI = new TessBaseAPI();
-            } catch (Exception e) {
+            } //end try
+            catch (Exception e) {
                 Log.e(TAG, e.getMessage());
-            }
+            } //end catch
 
             tessBaseAPI.init(getTessDataParentDirectory(), "eng");
             tessBaseAPI.setPageSegMode(TessBaseAPI.PageSegMode.PSM_AUTO);
@@ -1139,14 +1147,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
             try {
                 returnString = tessBaseAPI.getUTF8Text();
-            } catch (Exception e) {
+            } //end try
+            catch (Exception e) {
                 Log.e(TAG, e.getMessage());
-            }
+            } //end catch
             tessBaseAPI.end();
             return returnString.replace("\\s", "");
-        }
+        } //doInBackground
 
-        //y-m-d m-d-y
+
         protected void onPostExecute(String result) {
             String[] setTextData = new String[4];
 
@@ -1167,7 +1176,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 setTextData[0] = month;
                 setTextData[1] = day;
                 setTextData[2] = year;
-            }
+            } //end if
             if (dateMatcherTwo.find()) {
                 String dateResult = dateMatcherTwo.group(0).replaceAll("/-~'—\\s", "-");
                 String year = dateResult.substring(0, 3);
@@ -1176,13 +1185,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 setTextData[0] = month;
                 setTextData[1] = day;
                 setTextData[2] = year;
-            }
+            } //end if
 
             if (amountMatcher.find()) {
                 String amountResult = amountMatcher.group(0).trim().replaceAll("(?i)total ", "");
                 amountResult = amountResult.replaceAll("[^\\d$]+", ".");
                 setTextData[3] = amountResult;
-            } else {
+            } //end if
+            else {
                 Pattern tempAmount = Pattern.compile("(amount \\$[0-9]*\\D[0-9]{2})", Pattern.CASE_INSENSITIVE);
                 Pattern tempTip = Pattern.compile("Tip \\$[0-9]*\\D[0-9]{2}", Pattern.CASE_INSENSITIVE);
 
@@ -1202,10 +1212,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     double tempTotalAmount = MainActivity.round(Double.parseDouble(tempAmountValue) + Double.parseDouble(tempTipValue));
                     String tempTotalText = "$" + tempTotalAmount;
                     setTextData[3] = tempTotalText;
-                }
-            }
+                } //end if
+            } //end else
             setLayoutVisibility(R.id.scannerLayout, true);
             setOCRText(setTextData);
-        }
-    }
-}
+        } //onPostExecute
+    } //AsyncTessAPITask
+} //MainActivity
